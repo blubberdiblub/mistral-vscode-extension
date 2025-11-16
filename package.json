@@ -1,0 +1,110 @@
+{
+  "name": "mistral-vscode-extension",
+  "version": "0.0.1",
+  "displayName": "Mistral AI for Copilot",
+  "description": "Add Mistral provider to VSCode",
+  "license": "MIT",
+  "pricing": "Free",
+  "author": {
+    "name": "Niels Boehm",
+    "email": "blubberdiblub@gmail.com",
+    "url": "https://github.com/blubberdiblub/"
+  },
+  "publisher": "Extra Arcam",
+  "repository": {
+    "type": "github",
+    "url": "https://github.com/blubberdiblub/mistral-vscode-extension.git"
+  },
+  "engines": {
+    "vscode": "^1.106.0",
+    "node": ">=22.20.0",
+    "npm": ">=9.2.0"
+  },
+  "categories": [
+    "AI",
+    "Chat",
+    "Machine Learning",
+    "Programming Languages",
+    "Snippets"
+  ],
+  "keywords": [
+    "ai",
+    "autocomplete",
+    "autocompletion",
+    "cat",
+    "chat",
+    "chatgpt",
+    "chatgpt-alternative",
+    "co-pilot",
+    "code-assistant",
+    "codestral",
+    "copilot",
+    "devstral",
+    "gpt",
+    "language",
+    "llama",
+    "llm",
+    "magistral",
+    "ministral",
+    "mistral",
+    "mistralai",
+    "model",
+    "pair",
+    "pixtral",
+    "programming",
+    "refactor",
+    "refactoring",
+    "snippets",
+    "voxtral"
+  ],
+  "activationEvents": [
+    "onLanguageModelChatProvider:extra-arcam.mistralai",
+    "onStartupFinished"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "languageModelChatProviders": [
+      {
+        "vendor": "extra-arcam.mistralai",
+        "displayName": "Mistral AI",
+        "managementCommand": "github.copilot.chat.manageBYOK"
+      }
+    ]
+  },
+  "extensionDependencies": [
+    "github.copilot-chat"
+  ],
+  "scripts": {
+    "compile": "vite build",
+    "compile-tests": "tsc -p tsconfig.test.json --outDir out",
+    "lint": "eslint src tests",
+    "package": "del-cli dist && vite build --mode production",
+    "pretest": "npm run compile-tests && npm run compile && npm run lint",
+    "test": "vscode-test",
+    "vscode:prepublish": "npm run package",
+    "watch": "vite build --watch",
+    "watch-tests": "tsc -p tsconfig.test.json -w --outDir out"
+  },
+  "devDependencies": {
+    "@stylistic/eslint-plugin": "^5.6.1",
+    "@tsconfig/node22": "^22.0.5",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "^22.19.1",
+    "@types/string-format": "^2.0.3",
+    "@types/vscode": "^1.106.1",
+    "@typescript-eslint/eslint-plugin": "^8.48.1",
+    "@typescript-eslint/parser": "^8.48.1",
+    "@vscode/test-cli": "^0.0.12",
+    "@vscode/test-electron": "^2.5.2",
+    "del-cli": "^7.0.0",
+    "eslint": "^9.39.1",
+    "terser": "^5.44.1",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.48.1",
+    "vite": "^7.2.6"
+  },
+  "dependencies": {
+    "@mistralai/mistralai": "^1.10.0",
+    "string-format": "^2.0.0"
+  }
+}
