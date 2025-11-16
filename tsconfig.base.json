@@ -1,0 +1,17 @@
+{
+	"extends": "@tsconfig/node22/tsconfig.json",
+
+	"compilerOptions": {
+		"strict": true,
+		"noImplicitReturns": true,
+		"noFallthroughCasesInSwitch": true,
+		"noUnusedParameters": false
+	},
+
+	"exclude": [
+		"node_modules",
+		"dist",
+		"out",
+		"vite.config.ts"
+	]
+}
