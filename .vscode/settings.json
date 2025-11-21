@@ -1,0 +1,85 @@
+// Place your settings in this file to overwrite default and user settings.
+{
+	"files.exclude": {
+		"out": false, // set this to true to hide the "out" folder with the compiled JS files
+		"dist": false // set this to true to hide the "dist" folder with the compiled JS files
+	},
+	"search.exclude": {
+		"out": true, // set this to false to include "out" folder in search results
+		"dist": true // set this to false to include "dist" folder in search results
+	},
+	"[css]": {
+		"editor.detectIndentation": false,
+		"editor.indentSize": "tabSize",
+		"editor.insertSpaces": false,
+		"editor.tabSize": 4,
+	},
+	"[html]": {
+		"editor.detectIndentation": false,
+		"editor.indentSize": 4,
+		"editor.insertSpaces": true,
+		"editor.tabSize": 8,
+	},
+	"[javascript]": {
+		"editor.detectIndentation": false,
+		"editor.indentSize": 4,
+		"editor.insertSpaces": true,
+		"editor.tabSize": 8,
+	},
+	"[json]": {
+		"editor.detectIndentation": false,
+		"editor.indentSize": "tabSize",
+		"editor.insertSpaces": false,
+		"editor.tabSize": 4,
+	},
+	"[jsonc]": {
+		"editor.detectIndentation": false,
+		"editor.indentSize": "tabSize",
+		"editor.insertSpaces": false,
+		"editor.tabSize": 4,
+	},
+	"[markdown]": {
+		"editor.detectIndentation": false,
+		"editor.indentSize": 4,
+		"editor.insertSpaces": true,
+		"editor.tabSize": 4,
+	},
+	"[plaintext]": {
+		"editor.detectIndentation": false,
+		"editor.indentSize": "tabSize",
+		"editor.insertSpaces": false,
+		"editor.tabSize": 8,
+	},
+	"[typescript]": {
+		"editor.detectIndentation": false,
+		"editor.indentSize": 4,
+		"editor.insertSpaces": true,
+		"editor.tabSize": 8,
+	},
+	"editor.defaultFoldingRangeProvider": "dbaeumer.vscode-eslint",
+	"editor.defaultFormatter": "dbaeumer.vscode-eslint",
+	"editor.renderFinalNewline": "dimmed",
+	"editor.renderWhitespace": "trailing",
+	"eslint.format.enable": true,
+	"eslint.validate": [
+		"javascript",
+		"javascriptreact",
+		"typescript",
+		"typescriptreact",
+	],
+	"files.eol": "\n",
+	"files.insertFinalNewline": true,
+	"files.trimFinalNewlines": true,
+	"javascript.format.indentSwitchCase": false,
+	"javascript.format.placeOpenBraceOnNewLineForControlBlocks": true,
+	"javascript.format.placeOpenBraceOnNewLineForFunctions": true,
+	"javascript.format.semicolons": "insert",
+	"trailing-spaces.deleteModifiedLinesOnly": true,
+	"trailing-spaces.trimOnSave": true,
+	"typescript.format.indentSwitchCase": false,
+	"typescript.format.placeOpenBraceOnNewLineForControlBlocks": true,
+	"typescript.format.placeOpenBraceOnNewLineForFunctions": true,
+	"typescript.format.semicolons": "insert",
+	// Turn off tsc task auto detection since we have the necessary tasks as npm scripts
+	"typescript.tsc.autoDetect": "off",
+}
