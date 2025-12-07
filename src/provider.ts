@@ -94,8 +94,8 @@ export class MistralChatProvider implements LanguageModelChatProvider<MistralMod
                 message.content.some((part) => !(part instanceof LanguageModelTextPart)))
         {
             const content: unknown = message.content;
-            const copy: { content?: any; } = { ...message };
-            delete copy.content;
+            const copy: { content?: any; c?: any; } = { ...message };
+            delete copy.content; delete copy.c;
             this.logger.debug(
                     "Input Message:", JSON.stringify(copy),
                     "\n" + (!Array.isArray(content)
