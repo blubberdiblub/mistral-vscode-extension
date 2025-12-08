@@ -101,7 +101,7 @@
     "terser": "^5.44.1",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.48.1",
-    "vite": "^7.2.6"
+    "vite": "^7.2.7"
   },
   "dependencies": {
     "@mistralai/mistralai": "^1.10.0",
