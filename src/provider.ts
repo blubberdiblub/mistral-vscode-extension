@@ -319,8 +319,9 @@ export class MistralChatProvider implements LanguageModelChatProvider<MistralMod
                 .filter(x => !!x);
 
         const lastPart = (nameParts.length > 0) ? nameParts[nameParts.length - 1] : undefined;
-        const version = lastPart && lastPart.match(/^\d\w*$/) ? lastPart : '';
+
         const maxContextLength = model.maxContextLength || 16384;
+        const maxOutputTokens = Math.min(Math.ceil(maxContextLength / 4), 8192);
 
         return {
             id: model.id,
@@ -333,9 +334,9 @@ export class MistralChatProvider implements LanguageModelChatProvider<MistralMod
             detail: (!model.ownedBy || model.ownedBy === 'mistralai')
                      ? VENDOR_DISPLAY_NAME
                      : `${VENDOR_DISPLAY_NAME} (${model.ownedBy})`,
-            version: version,
-            maxInputTokens: Math.ceil(maxContextLength / 2),
-            maxOutputTokens: Math.ceil(maxContextLength / 4),
+            version: lastPart && lastPart.match(/^\d\w*$/) ? lastPart : '',
+            maxInputTokens: maxContextLength - maxOutputTokens,
+            maxOutputTokens: maxOutputTokens,
             capabilities: {
                 imageInput: !!model.capabilities.vision,
                 toolCalling: !!model.capabilities.functionCalling,
