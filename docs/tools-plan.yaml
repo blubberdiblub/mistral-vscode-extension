@@ -1,0 +1,252 @@
+name: fetch_webpage
+description: Fetches the main content from a web page. This tool is useful for 
+  summarizing or analyzing the content of a webpage. You should use this tool 
+  when you think the user is looking for information from a specific webpage.
+inputSchema:
+  type: object
+  properties:
+    urls:
+      type: array
+      items:
+        type: string
+      description: An array of URLs to fetch content from.
+    query:
+      type: string
+      description: The query to search for in the web page's content. This 
+        should be a clear and concise description of the content you want to 
+        find.
+  required:
+    - urls
+    - query
+---
+name: file_search
+description: "Search for files in the workspace by glob pattern. This only returns
+  the paths of matching files. Use this tool when you know the exact filename pattern
+  of the files you're searching for. Glob patterns match from the root of the workspace
+  folder. Examples:\n- **/*.{js,ts} to match all js/ts files in the workspace.\n-
+  src/** to match all files under the top-level src folder.\n- **/foo/**/*.js to match
+  all js files under any foo folder in the workspace."
+inputSchema:
+  type: object
+  properties:
+    query:
+      type: string
+      description: Search for files with names or paths matching this glob 
+        pattern.
+    maxResults:
+      type: number
+      description: The maximum number of results to return. Do not use this 
+        unless necessary, it can slow things down. By default, only some matches
+        are returned. If you use this and don't see what you're looking for, you
+        can try again with a more specific query or a larger maxResults.
+  required:
+    - query
+---
+name: grep_search
+description: Do a fast text search in the workspace. Use this tool when you want
+  to search with an exact string or regex. If you are not sure what words will 
+  appear in the workspace, prefer using regex patterns with alternation (|) or 
+  character classes to search for multiple potential words at once instead of 
+  making separate searches. For example, use 'function|method|procedure' to look
+  for all of those words at once. Use includePattern to search within files 
+  matching a specific pattern, or in a specific file, using a relative path. Use
+  this tool when you want to see an overview of a particular file, instead of 
+  using read_file many times to look for code within a file.
+inputSchema:
+  type: object
+  properties:
+    query:
+      type: string
+      description: The pattern to search for in files in the workspace. Use 
+        regex with alternation (e.g., 'word1|word2|word3') or character classes 
+        to find multiple potential words in a single search. Be sure to set the 
+        isRegexp property properly to declare whether it's a regex or plain text
+        pattern. Is case-insensitive.
+    isRegexp:
+      type: boolean
+      description: Whether the pattern is a regex.
+    includePattern:
+      type: string
+      description: Search files matching this glob pattern. Will be applied to 
+        the relative path of files within the workspace. To search recursively 
+        inside a folder, use a proper glob pattern like "src/folder/**". Do not 
+        use | in includePattern.
+    maxResults:
+      type: number
+      description: The maximum number of results to return. Do not use this 
+        unless necessary, it can slow things down. By default, only some matches
+        are returned. If you use this and don't see what you're looking for, you
+        can try again with a more specific query or a larger maxResults.
+  required:
+    - query
+    - isRegexp
+---
+name: get_changed_files
+description: Get git diffs of current file changes in a git repository. Don't 
+  forget that you can use run_in_terminal to run git commands in a terminal as 
+  well.
+inputSchema:
+  type: object
+  properties:
+    repositoryPath:
+      type: string
+      description: The absolute path to the git repository to look for changes 
+        in. If not provided, the active git repository will be used.
+    sourceControlState:
+      type: array
+      items:
+        type: string
+        enum:
+          - staged
+          - unstaged
+          - merge-conflicts
+      description: "The kinds of git state to filter by. Allowed values are: 'staged',
+        'unstaged', and 'merge-conflicts'. If not provided, all states will be included."
+---
+name: get_errors
+description: Get any compile or lint errors in a specific file or across all 
+  files. If the user mentions errors or problems in a file, they may be 
+  referring to these. Use the tool to see the same errors that the user is 
+  seeing. If the user asks you to analyze all errors, or does not specify a 
+  file, use this tool to gather errors for all files. Also use this tool after 
+  editing a file to validate the change.
+inputSchema:
+  type: object
+  properties:
+    filePaths:
+      description: The absolute paths to the files or folders to check for 
+        errors. Omit 'filePaths' when retrieving all errors.
+      type: array
+      items:
+        type: string
+---
+name: get_search_view_results
+description: The results from the search view
+---
+name: github_repo
+description: Searches a GitHub repository for relevant source code snippets. 
+  Only use this tool if the user is very clearly asking for code snippets from a
+  specific GitHub repository. Do not use this tool for Github repos that the 
+  user has open in their workspace.
+inputSchema:
+  type: object
+  properties:
+    repo:
+      type: string
+      description: The name of the Github repository to search for code in. 
+        Should must be formatted as '<owner>/<repo>'.
+    query:
+      type: string
+      description: The query to search for repo. Should contain all relevant 
+        context.
+  required:
+    - repo
+    - query
+---
+name: list_code_usages
+description: "Request to list all usages (references, definitions, implementations
+  etc) of a function, class, method, variable etc. Use this tool when \n1. Looking
+  for a sample implementation of an interface or class\n2. Checking how a function
+  is used throughout the codebase.\n3. Including and updating all usages when changing
+  a function, method, or constructor"
+inputSchema:
+  type: object
+  properties:
+    symbolName:
+      type: string
+      description: The name of the symbol, such as a function name, class name, 
+        method name, variable name, etc.
+    filePaths:
+      type: array
+      description: One or more file paths which likely contain the definition of
+        the symbol. For instance the file which declares a class or function. 
+        This is optional but will speed up the invocation of this tool and 
+        improve the quality of its output.
+      items:
+        type: string
+  required:
+    - symbolName
+---
+name: list_dir
+description: List the contents of a directory. Result will have the name of the 
+  child. If the name ends in /, it's a folder, otherwise a file
+inputSchema:
+  type: object
+  properties:
+    path:
+      type: string
+      description: The absolute path to the directory to list.
+  required:
+    - path
+---
+name: read_file
+description: "Read the contents of a file.\n\nYou must specify the line range you're
+  interested in. Line numbers are 1-indexed. If the file contents returned are insufficient
+  for your task, you may call this tool again to retrieve more content. Prefer reading
+  larger ranges over doing many small reads."
+inputSchema:
+  type: object
+  properties:
+    filePath:
+      description: The absolute path of the file to read.
+      type: string
+    startLine:
+      type: number
+      description: The line number to start reading from, 1-based.
+    endLine:
+      type: number
+      description: The inclusive line number to end reading at, 1-based.
+  required:
+    - filePath
+    - startLine
+    - endLine
+---
+name: semantic_search
+description: Run a natural language search for relevant code or documentation 
+  comments from the user's current workspace. Returns relevant code snippets 
+  from the user's current workspace if it is large, or the full contents of the 
+  workspace if it is small.
+inputSchema:
+  type: object
+  properties:
+    query:
+      type: string
+      description: The query to search the codebase for. Should contain all 
+        relevant context. Should ideally be text that might appear in the 
+        codebase, such as function names, variable names, or comments.
+  required:
+    - query
+---
+name: test_failure
+description: Includes test failure information in the prompt.
+---
+name: runSubagent
+description: "Launch a new agent to handle complex, multi-step tasks autonomously.
+  This tool is good at researching complex questions, searching for code, and executing
+  multi-step tasks. When you are searching for a keyword or file and are not confident
+  that you will find the right match in the first few tries, use this agent to perform
+  the search for you.\n\n- Agents do not run async or in the background, you will
+  wait for the agent's result.\n- When the agent is done, it will return a single
+  message back to you. The result returned by the agent is not visible to the user.
+  To show the user the result, you should send a text message back to the user with
+  a concise summary of the result.\n- Each agent invocation is stateless. You will
+  not be able to send additional messages to the agent, nor will the agent be able
+  to communicate with you outside of its final report. Therefore, your prompt should
+  contain a highly detailed task description for the agent to perform autonomously
+  and you should specify exactly what information the agent should return back to
+  you in its final and only message to you.\n- The agent's outputs should generally
+  be trusted\n- Clearly tell the agent whether you expect it to write code or just
+  to do research (search, file reads, web fetches, etc.), since it is not aware of
+  the user's intent"
+inputSchema:
+  type: object
+  properties:
+    prompt:
+      type: string
+      description: A detailed description of the task for the agent to perform
+    description:
+      type: string
+      description: A short (3-5 word) description of the task
+  required:
+    - prompt
+    - description
