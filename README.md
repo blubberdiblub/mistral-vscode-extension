@@ -16,7 +16,7 @@ refactoring capabilities.
 
 - Visual Studio Code v1.106.0 or higher
 - GitHub Copilot Chat extension (required dependency)
-- Node.js v20.19.2+ (for development only)
+- Node.js v22.19.1+ (for development only)
 
 ## Installation
 
