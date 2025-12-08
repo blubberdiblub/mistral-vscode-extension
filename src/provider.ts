@@ -105,7 +105,7 @@ export class MistralChatProvider implements LanguageModelChatProvider<MistralMod
                             : content.map((part) => part instanceof LanguageModelTextPart
                                           ? part.value
                                           : part instanceof LanguageModelDataPart
-                                          ? `${part.data}`
+                                          ? `Content-Type: ${part.mimeType}\n\n${part.data}`
                                           : JSON.stringify(part)).join("\n---\n")) + "\n---\n"
             );
         }
