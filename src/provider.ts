@@ -91,7 +91,9 @@ export class MistralChatProvider implements LanguageModelChatProvider<MistralMod
                 message.role < 1 || message.role > 3 ||
                 message.role === 3 && (index !== 0 || array.length <= 2) ||
                 !Array.isArray(message.content) ||
-                message.content.some((part) => !(part instanceof LanguageModelTextPart)))
+                message.content.some((part) => !(part instanceof LanguageModelTextPart)) ||
+                true
+        )
         {
             const content: unknown = message.content;
             const copy: { content?: any; c?: any; } = { ...message };
@@ -102,7 +104,9 @@ export class MistralChatProvider implements LanguageModelChatProvider<MistralMod
                             ? JSON.stringify(content)
                             : content.map((part) => part instanceof LanguageModelTextPart
                                           ? part.value
-                                          : JSON.stringify(part)).join("\n---\n"))
+                                          : part instanceof LanguageModelDataPart
+                                          ? `${part.data}`
+                                          : JSON.stringify(part)).join("\n---\n")) + "\n---\n"
             );
         }
 
