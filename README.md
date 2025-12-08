@@ -6,18 +6,15 @@ refactoring capabilities.
 
 ## Features
 
-- **Mistral AI Integration**: Access Mistral 7B and Mixtral 8x7B models directly in VS Code
-- **Code Assistance**: Get intelligent code completions and suggestions
+- **Mistral AI Integration**: Access Mistral models directly in VS Code
 - **Interactive Chat**: Chat with Mistral about your code using natural language
-- **Token Management**: Automatic token counting for input/output
-- **Seamless Integration**: Works alongside GitHub Copilot infrastructure
+- **Seamless Integration**: Utilizes Copilot Chat extension infrastructure
 
 ![Mistral Chat Example](images/chat-example.png)
 
 ## Requirements
 
 - Visual Studio Code v1.106.0 or higher
-- GitHub Copilot extension (required dependency)
 - GitHub Copilot Chat extension (required dependency)
 - Node.js v20.19.2+ (for development only)
 
@@ -29,23 +26,37 @@ refactoring capabilities.
 
 ## Supported Models
 
-| Model ID       | Name          | Max Input Tokens | Max Output Tokens |
-|----------------|---------------|------------------|-------------------|
-| mistral-7b     | Mistral 7B    | 32,768           | 4,096             |
-| mistral-8x7b   | Mixtral 8x7B  | 32,768           | 4,096             |
+| Model ID                | Name                  | Context | Def. Temp. |
+|-------------------------|-----------------------|---------|------------|
+| mistral-large-latest    | Mistral Large 2512    | 262,144 |        0.3 |
+| mistral-medium-latest   | Mistral Medium 2508   | 131,072 |        0.3 |
+| mistral-small-latest    | Mistral Small 2506    | 131,072 |        0.3 |
+| mistral-tiny-latest     | Open Mistral Nemo     | 131,072 |        0.3 |
+| mistral-tiny            | Open Mistral 7b       |  32,768 |        0.7 |
+| mistral-large-2411      | Mistral Large 2411    | 131,072 |        0.7 |
+| devstral-medium-latest  | Devstral Medium 2507  | 131,072 |        0.0 |
+| devstral-small-latest   | Devstral Small 2507   | 131,072 |        0.0 |
+| ministral-14b-latest    | Ministral 14b 2512    | 262,144 |        0.3 |
+| ministral-8b-latest     | Ministral 8b 2512     | 262,144 |        0.3 |
+| ministral-3b-latest     | Ministral 3b 2512     | 131,072 |        0.3 |
+| magistral-medium-latest | Magistral Medium 2509 | 131,072 |        0.7 |
+| magistral-small-latest  | Magistral Small 2509  | 131,072 |        0.7 |
+| codestral-latest        | Codestral 2508        | 256,000 |        0.3 |
+| voxtral-small-latest    | Voxtral Small 2507    |  32,768 |        0.2 |
+| voxtral-mini-latest     | Voxtral Mini 2507     |  32,768 |        0.2 |
+| pixtral-large-latest    | Pixtral Large 2411    | 131,072 |        0.7 |
 
 ## Release Notes
 
 ### 0.0.1 (Current Version)
 - Initial release with basic Mistral integration
-- Supports Mistral 7B and Mixtral 8x7B models
-- Basic token counting implementation
+- Token counting by trivial estimation
 - Chat interface integration
 
 # Limitations
 
-- Token counting uses approximate character-based calculation
-- Requires GitHub Copilot infrastructure
+- Token counting uses character-based calculation
+- Requires Copilot Chat infrastructure (it's a feature, though)
 - Currently in early development phase
 
 ## Support
