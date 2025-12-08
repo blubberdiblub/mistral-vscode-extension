@@ -97,8 +97,11 @@
     "@vscode/test-cli": "^0.0.12",
     "@vscode/test-electron": "^2.5.2",
     "del-cli": "^7.0.0",
+    "esbuild": "^0.27.1",
     "eslint": "^9.39.1",
+    "mocha": "^11.7.5",
     "terser": "^5.44.1",
+    "tsc": "^2.0.4",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.48.1",
     "vite": "^7.2.7"
