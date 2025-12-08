@@ -160,10 +160,14 @@ export class MistralChatProvider implements LanguageModelChatProvider<MistralMod
     {
         this.logger.trace("provideLanguageModelChatResponse()");
 
-        if (options.toolMode !== 1 || options.tools && options.tools.length > 0 || options.modelOptions && Object.keys(options.modelOptions).length > 0)
+        if (options.toolMode !== 1
+                || options.tools && options.tools.length > 0
+                || options.modelOptions && Object.keys(options.modelOptions).length > 0
+                || true
+        )
         {
             this.logger.debug("  model =", JSON.stringify(model));
-            this.logger.debug("  messages =", JSON.stringify(messages));
+            //this.logger.debug("  messages =", JSON.stringify(messages));
             this.logger.debug("  options =", JSON.stringify(options));
         }
 
