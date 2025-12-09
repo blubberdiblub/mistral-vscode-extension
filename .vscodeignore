@@ -1,0 +1,23 @@
+# VS Code extension publishing ignore file
+# Exclude source maps from published extension
+*.map
+
+# Exclude development and test files
+dist/*.map
+out/
+tests/
+
+# Exclude build artifacts
+*.vsix
+.vscode-test.mjs
+
+# Exclude version control and development files
+.git/
+.gitignore
+.vscode/
+node_modules/
+package-lock.json
+
+# Exclude build cache
+.vite-cache/
+.tsbuildinfo
