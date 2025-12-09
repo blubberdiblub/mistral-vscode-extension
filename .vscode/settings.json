@@ -28,9 +28,9 @@
 	},
 	"[json]": {
 		"editor.detectIndentation": false,
-		"editor.indentSize": "tabSize",
-		"editor.insertSpaces": false,
-		"editor.tabSize": 4,
+		"editor.indentSize": 2,
+		"editor.insertSpaces": true,
+		"editor.tabSize": 8,
 	},
 	"[jsonc]": {
 		"editor.detectIndentation": false,
