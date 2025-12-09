@@ -1,9 +1,10 @@
-node_modules/
-package-lock.json
-
 dist/
 out/
 
+node_modules/
+package-lock.json
+
+.vite-cache/
 .vscode-test/
 
 *.vsix
