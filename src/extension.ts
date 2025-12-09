@@ -1,4 +1,4 @@
-import { lm, window } from 'vscode';
+import { commands, lm, window } from 'vscode';
 import type { ExtensionContext } from 'vscode';
 
 import { LOG_CHANNEL_NAME, OUTPUT_SEVERITY, VENDOR_IDENTIFIER } from './constants';
@@ -15,8 +15,14 @@ export async function activate(context: ExtensionContext): Promise<void>
     const logger = new VSCodeLogger(OUTPUT_SEVERITY.debug, [logChannel, console]);
 
     logger.notice("Activating Mistral Chat Provider");
-
     const provider = new MistralChatProvider(context, logger);
+
+    context.subscriptions.push(
+            commands.registerCommand('extra-arcam.mistralai.configure',
+                    provider.configure.bind(provider)
+            )
+    );
+
     context.subscriptions.push(
             lm.registerLanguageModelChatProvider(VENDOR_IDENTIFIER, provider),
     );

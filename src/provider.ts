@@ -25,6 +25,7 @@ import {
     API_KEY_STORAGE_KEY,
     MISTRAL_ROLE,
     VENDOR_DISPLAY_NAME,
+    VENDOR_IDENTIFIER,
 } from './constants';
 import { askUserForAPIKey } from './ui';
 import type {
@@ -402,7 +403,39 @@ export class MistralChatProvider implements LanguageModelChatProvider<MistralMod
     }
 
 
-    async _ensureAPIKey(): Promise<string>
+    async configure(vendor?: string): Promise<void>
+    {
+        if (vendor !== undefined && vendor !== VENDOR_IDENTIFIER)
+            return;
+
+        this.logger.trace("configure()");
+
+        let newAPIKey: string;
+        try
+        {
+            const oldAPIKey = await this.context.secrets.get(API_KEY_STORAGE_KEY);
+            newAPIKey = await askUserForAPIKey(oldAPIKey, true, this.logger);
+        }
+        catch (error)
+        {
+            this.logger.error("configure():", error);
+            return;
+        }
+
+        if (!newAPIKey)
+        {
+            this.logger.debug("configure(): deleting API key from secret storage");
+            await this.context.secrets.delete(API_KEY_STORAGE_KEY);
+
+            return;
+        }
+
+        this.logger.debug("configure(): saving API key in secret storage");
+        await this.context.secrets.store(API_KEY_STORAGE_KEY, newAPIKey);
+    }
+
+
+    async _ensureAPIKey(options?: {silent?: boolean}): Promise<string>
     {
         this.logger.trace("_ensureAPIKey()");
 
@@ -410,8 +443,25 @@ export class MistralChatProvider implements LanguageModelChatProvider<MistralMod
         if (oldAPIKey)
             return oldAPIKey;
 
-        const newAPIKey = await askUserForAPIKey(oldAPIKey, this.logger);
+        if (options && options.silent)
+        {
+            this.logger.debug("_ensureAPIKey(): no API key present");
+            return Promise.reject(new Error("no API key present"));
+        }
+
+        this.logger.debug("_ensureAPIKey(): no API key present, asking user");
+        const newAPIKey = await askUserForAPIKey(oldAPIKey, false, this.logger);
+        if (!newAPIKey)
+        {
+            this.logger.debug("_ensureAPIKey(): deleting API key from secret storage");
+            await this.context.secrets.delete(API_KEY_STORAGE_KEY);
+
+            return Promise.reject(new Error("API key cleared by user"));
+        }
+
+        this.logger.debug("_ensureAPIKey(): saving API key in secret storage");
         await this.context.secrets.store(API_KEY_STORAGE_KEY, newAPIKey);
+
         return newAPIKey;
     }
 

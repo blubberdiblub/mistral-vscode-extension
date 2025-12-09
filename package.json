@@ -63,11 +63,18 @@
   ],
   "main": "./dist/extension.js",
   "contributes": {
+    "commands": [
+      {
+        "command": "extra-arcam.mistralai.configure",
+        "title": "Configure Mistral AI",
+        "category": "Mistral AI"
+      }
+    ],
     "languageModelChatProviders": [
       {
         "vendor": "extra-arcam.mistralai",
         "displayName": "Mistral AI",
-        "managementCommand": "github.copilot.chat.manageBYOK"
+        "managementCommand": "extra-arcam.mistralai.configure"
       }
     ]
   },

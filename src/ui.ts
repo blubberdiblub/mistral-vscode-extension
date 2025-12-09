@@ -3,7 +3,11 @@ import { window } from 'vscode';
 import type { Logger } from './types';
 
 
-export async function askUserForAPIKey(oldAPIKey?: string, logger?: Logger): Promise<string>
+export async function askUserForAPIKey(
+        oldAPIKey?: string,
+        focusOutCancels: boolean = false,
+        logger?: Logger,
+): Promise<string>
 {
     if (logger)
         logger.trace("askUserForAPIKey()");
@@ -15,16 +19,16 @@ export async function askUserForAPIKey(oldAPIKey?: string, logger?: Logger): Pro
             value: oldAPIKey,
             prompt: "Enter your Mistral API key",
             password: true,
-            ignoreFocusOut: true,
+            ignoreFocusOut: !focusOutCancels,
         }))?.trim();
 
+        if (apiKey !== undefined)
+            return apiKey;
+
         if (logger)
-            logger.debug("askUserForAPIKey(): apiKey =", apiKey);
+            logger.debug("askUserForAPIKey(): dialog cancelled");
 
-        if (apiKey === undefined)
-            return Promise.reject(new Error("No API key provided"));
-
-        return apiKey;
+        return Promise.reject(new Error("Dialog cancelled"));
     }
     catch (error)
     {
