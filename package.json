@@ -82,12 +82,16 @@
     "github.copilot-chat"
   ],
   "scripts": {
+    "clean": "del-cli dist out",
     "compile": "vite build",
     "compile-tests": "tsc -p tsconfig.test.json --outDir out",
     "lint": "eslint src tests",
+    "lint:fix": "eslint src tests --fix",
     "package": "del-cli dist && vite build --mode production",
+    "prepare": "npm run compile",
     "pretest": "npm run compile-tests && npm run compile && npm run lint",
     "test": "vscode-test",
+    "test:watch": "npm run watch-tests & npm run watch & npm run test",
     "vscode:prepublish": "npm run package",
     "watch": "vite build --watch",
     "watch-tests": "tsc -p tsconfig.test.json -w --outDir out"
