@@ -84,7 +84,7 @@
   "scripts": {
     "clean": "del-cli dist out",
     "compile": "vite build --mode development",
-    "compile-tests": "tsc -p tsconfig.test.json --outDir out",
+    "compile-tests": "tsc -p tests/tsconfig.json --sourceMap",
     "lint": "eslint src tests",
     "lint:fix": "eslint src tests --fix",
     "package": "vite build --mode production",
@@ -94,7 +94,7 @@
     "test:watch": "npm run watch-tests & npm run watch & npm run test",
     "vscode:prepublish": "npm run package",
     "watch": "vite build --watch --mode development",
-    "watch-tests": "tsc -p tsconfig.test.json -w --outDir out"
+    "watch-tests": "tsc -p tests/tsconfig.json -w --sourceMap"
   },
   "devDependencies": {
     "@stylistic/eslint-plugin": "^5.6.1",
