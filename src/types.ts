@@ -17,7 +17,7 @@ import type {
     UserMessage          as MistralUserMessage,
     UserMessageRole      as MistralUserRole,
 } from '@mistralai/mistralai/models/components';
-import type { ChatCompletionStreamRequest } from '@mistralai/mistralai/models/components';
+// import type { ChatCompletionStreamRequest } from '@mistralai/mistralai/models/components';
 
 
 export type LogTarget = LogOutputChannel | globalThis.Console | null | undefined;
@@ -27,16 +27,16 @@ export type OutputSeverity = 'all' | MessageSeverity | 'none';
 
 export interface Logger
 {
-    trace(message: string, ...args: any[]): void;
-    debug(message: string, ...args: any[]): void;
-    info(message: string, ...args: any[]): void;
-    notice(message: string, ...args: any[]): void;
-    warn(message: string, ...args: any[]): void;
-    error(message: string, ...args: any[]): void;
-    critical(message: string, ...args: any[]): void;
-    fatal(message: string, ...args: any[]): void;
+    trace(message: string, ...args: unknown[]): void;
+    debug(message: string, ...args: unknown[]): void;
+    info(message: string, ...args: unknown[]): void;
+    notice(message: string, ...args: unknown[]): void;
+    warn(message: string, ...args: unknown[]): void;
+    error(message: string, ...args: unknown[]): void;
+    critical(message: string, ...args: unknown[]): void;
+    fatal(message: string, ...args: unknown[]): void;
 
-    log(severity: MessageSeverity | number, message: string, ...args: any[]): void;
+    log(severity: MessageSeverity | number, message: string, ...args: unknown[]): void;
 }
 
 enum AugmentedLanguageModelChatMessageRole {
@@ -44,7 +44,9 @@ enum AugmentedLanguageModelChatMessageRole {
     Tool      = 4,
 }
 
-export type FixedLanguageModelChatMessageRole = LanguageModelChatMessageRole | AugmentedLanguageModelChatMessageRole;
+export type FixedLanguageModelChatMessageRole =
+        | LanguageModelChatMessageRole
+        | AugmentedLanguageModelChatMessageRole;
 
 export interface FixedLanguageModelChatRequestMessage {
     readonly role: FixedLanguageModelChatMessageRole;

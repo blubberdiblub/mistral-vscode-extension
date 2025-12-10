@@ -56,53 +56,53 @@ export class VSCodeLogger implements Logger
         /* ========== otherwise ========== */  return LogLevel.Error;
     }
 
-    trace(message: string, ...args: any[]): void
+    trace(message: string, ...args: unknown[]): void
     {
         this._log(MESSAGE_SEVERITY.trace, message, ...args);
     }
 
-    debug(message: string, ...args: any[]): void
+    debug(message: string, ...args: unknown[]): void
     {
         this._log(MESSAGE_SEVERITY.debug, message, ...args);
     }
 
-    info(message: string, ...args: any[]): void
+    info(message: string, ...args: unknown[]): void
     {
         this._log(MESSAGE_SEVERITY.info, message, ...args);
     }
 
-    notice(message: string, ...args: any[]): void
+    notice(message: string, ...args: unknown[]): void
     {
         this._log(MESSAGE_SEVERITY.notice, message, ...args);
     }
 
-    warn(message: string, ...args: any[]): void
+    warn(message: string, ...args: unknown[]): void
     {
         this._log(MESSAGE_SEVERITY.warn, message, ...args);
     }
 
-    error(message: string, ...args: any[]): void
+    error(message: string, ...args: unknown[]): void
     {
         this._log(MESSAGE_SEVERITY.error, message, ...args);
     }
 
-    critical(message: string, ...args: any[]): void
+    critical(message: string, ...args: unknown[]): void
     {
         this._log(MESSAGE_SEVERITY.critical, message, ...args);
     }
 
-    fatal(message: string, ...args: any[]): void
+    fatal(message: string, ...args: unknown[]): void
     {
         this._log(MESSAGE_SEVERITY.fatal, message, ...args);
     }
 
-    log(severity: MessageSeverity | number, message: string, ...args: any[]): void
+    log(severity: MessageSeverity | number, message: string, ...args: unknown[]): void
     {
         const numericSeverity = typeof severity === 'number' ? severity : MESSAGE_SEVERITY[severity];
         this._log(numericSeverity, message, ...args);
     }
 
-    private _log(severity: number, message: string, ...args: any[]): void
+    private _log(severity: number, message: string, ...args: unknown[]): void
     {
         if (severity < this._minimumSeverity)
             return;

@@ -23,7 +23,7 @@ export default [
             "curly": ["warn", "multi-or-nest", "consistent"],
             "eqeqeq": ["error", "always"],
             "no-console": ["warn", {
-                allow: ["warn", "error", "log", "info", "debug"],
+                allow: ["Console", "debug", "error", "info", "log", "trace", "warn"],
             }],
             "no-debugger": "error",
             "no-throw-literal": "error",
