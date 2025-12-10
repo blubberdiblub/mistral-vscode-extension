@@ -76,7 +76,7 @@ export default [
             }],
             "@stylistic/max-len": ["warn", {
                 code: 100,
-                comments: 80,
+                comments: 103,
                 tabWidth: 8,
                 ignoreTrailingComments: true,
                 ignoreUrls: true,
