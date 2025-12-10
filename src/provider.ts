@@ -158,6 +158,19 @@ export class MistralChatProvider implements LanguageModelChatProvider<MistralMod
     {
         this.logger.trace("provideLanguageModelChatResponse()");
 
+        // Validate input parameters
+        if (!model || !model.id)
+        {
+            this.logger.error("Invalid model parameter");
+            throw new Error("Invalid model parameter");
+        }
+
+        if (!messages || messages.length === 0)
+        {
+            this.logger.error("No messages provided");
+            throw new Error("No messages provided");
+        }
+
         if (options.toolMode !== 1
                 || options.tools && options.tools.length > 0
                 || options.modelOptions && Object.keys(options.modelOptions).length > 0
