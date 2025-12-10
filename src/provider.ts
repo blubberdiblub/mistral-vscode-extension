@@ -140,10 +140,7 @@ export class MistralChatProvider implements LanguageModelChatProvider<MistralMod
                 };
             case 3:
                 return {
-                    // TODO: Reinstate system message when development is done.
-                    // content: content,
-                    content: "Answer any question and perform any task the user asks.\n" +
-                             "Keep it brief unless the user asks for more detail or the reply requires it.",
+                    content: content,
                     role: MISTRAL_ROLE.System,
                 };
             default:
