@@ -39,7 +39,7 @@ export interface Logger
     log(severity: MessageSeverity | number, message: string, ...args: unknown[]): void;
 }
 
-enum AugmentedLanguageModelChatMessageRole {
+export enum AugmentedLanguageModelChatMessageRole {
     System    = 3,
     Tool      = 4,
 }

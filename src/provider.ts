@@ -1,4 +1,5 @@
 import {
+    LanguageModelChatMessageRole,
     LanguageModelDataPart,
     LanguageModelTextPart,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -27,7 +28,7 @@ import {
     VENDOR_DISPLAY_NAME,
     VENDOR_IDENTIFIER,
 } from './constants';
-import { askUserForAPIKey } from './ui';
+import { AugmentedLanguageModelChatMessageRole } from './types';
 import type {
     FixedLanguageModelChatRequestMessage,
     Logger,
@@ -35,6 +36,7 @@ import type {
     MistralModelCard,
     MistralModelChatInformation,
 } from './types';
+import { askUserForAPIKey } from './ui';
 
 
 export class MistralChatProvider implements LanguageModelChatProvider<MistralModelChatInformation>
@@ -84,12 +86,14 @@ export class MistralChatProvider implements LanguageModelChatProvider<MistralMod
             array: readonly unknown[],
     ): MistralMessage
     {
+        const { role, content, name } = message;
+
         // TODO: Remove development debug output.
-        if (message.name ||
-                message.role < 1 || message.role > 3 ||  // 4 = tool
-                message.role === 3 && (index !== 0 || array.length <= 2) ||
-                !Array.isArray(message.content) ||
-                message.content.some((part) => !(part instanceof LanguageModelTextPart)) ||
+        if (name ||
+                role < 1 || role > 3 ||  // 4 = tool
+                role === 3 && (index !== 0 || array.length <= 2) ||
+                !Array.isArray(content) ||
+                content.some((part) => !(part instanceof LanguageModelTextPart)) ||
                 true
         )
         {
@@ -97,9 +101,9 @@ export class MistralChatProvider implements LanguageModelChatProvider<MistralMod
             delete copy.content; delete copy.c;
             this.logger.debug(
                     "Input Message:", JSON.stringify(copy),
-                    "\n" + (!Array.isArray(message.content)
-                            ? JSON.stringify(message.content)
-                            : message.content.map((part) => part instanceof LanguageModelTextPart
+                    "\n" + (!Array.isArray(content)
+                            ? JSON.stringify(content)
+                            : content.map((part) => part instanceof LanguageModelTextPart
                                           ? part.value
                                           : part instanceof LanguageModelDataPart
                                           ? `Content-Type: ${part.mimeType}\n\n${part.data}`
@@ -107,32 +111,36 @@ export class MistralChatProvider implements LanguageModelChatProvider<MistralMod
             );
         }
 
-        const text = typeof message.content === 'string'
-                ? message.content
-                : message.content.map(
+        const text = typeof content === 'string'
+                ? content
+                : content.map(
                         (part) => part instanceof LanguageModelTextPart ? part.value : String(part)
                 ).join('');
 
-        switch (message.role)
+        switch (role)
         {
-            case 1:  // User
+            case LanguageModelChatMessageRole.User:
                 return {
                     content: text,
                     role: MISTRAL_ROLE.User,
                 };
-            case 2:  // Assistant
+            case LanguageModelChatMessageRole.Assistant:
                 return {
                     content: text,
                     role: MISTRAL_ROLE.Assistant,
                 };
-            case 3:  // System
+            case AugmentedLanguageModelChatMessageRole.System:
                 return {
                     content: text,
                     role: MISTRAL_ROLE.System,
                 };
-            // case 4:  // Tool
+            case AugmentedLanguageModelChatMessageRole.Tool:
+                return {
+                    content: text,
+                    role: MISTRAL_ROLE.Tool,
+                };
             default:
-                throw new Error(`Unknown message role: ${message.role}`);
+                throw new Error(`Unknown message role: ${role}`);
         }
     }
 
