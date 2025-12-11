@@ -396,6 +396,7 @@ export class MistralChatProvider implements LanguageModelChatProvider<MistralMod
             mapIdToModel: Map<string, MistralModelChatInformation>,
     ): void
     {
+        let resultModelInfo = modelInfo;
         let newAliases = new Set(modelInfo.aliases);
         let examineIds = new Set(modelInfo.aliases);
         while (examineIds.size > 0)
@@ -405,28 +406,28 @@ export class MistralChatProvider implements LanguageModelChatProvider<MistralMod
                 examineIds.delete(id);
 
                 const otherInfo = mapIdToModel.get(id);
-                if (!otherInfo || otherInfo === modelInfo)
+                if (!otherInfo || otherInfo === resultModelInfo)
                     continue;
 
                 uniqueModels.delete(otherInfo);
                 newAliases = newAliases.union(otherInfo.aliases);
                 examineIds = examineIds.difference(otherInfo.aliases);
 
-                if (modelInfo.version.localeCompare(otherInfo.version, undefined, {
+                if (resultModelInfo.version.localeCompare(otherInfo.version, undefined, {
                     numeric: true,
                     sensitivity: 'accent',
                 }) <= 0)
-                    modelInfo = otherInfo;
+                    resultModelInfo = otherInfo;
 
                 break;
             }
         }
 
-        modelInfo.aliases = newAliases;
-        uniqueModels.add(modelInfo);
+        resultModelInfo.aliases = newAliases;
+        uniqueModels.add(resultModelInfo);
 
         for (const id of newAliases)
-            mapIdToModel.set(id, modelInfo);
+            mapIdToModel.set(id, resultModelInfo);
     }
 
 
