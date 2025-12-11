@@ -86,7 +86,7 @@ export class MistralChatProvider implements LanguageModelChatProvider<MistralMod
     {
         // TODO: Remove development debug output.
         if (message.name ||
-                message.role < 1 || message.role > 3 ||
+                message.role < 1 || message.role > 3 ||  // 4 = tool
                 message.role === 3 && (index !== 0 || array.length <= 2) ||
                 !Array.isArray(message.content) ||
                 message.content.some((part) => !(part instanceof LanguageModelTextPart)) ||
@@ -126,21 +126,22 @@ export class MistralChatProvider implements LanguageModelChatProvider<MistralMod
 
         switch (message.role)
         {
-            case 1:
+            case 1:  // User
                 return {
                     content: content,
                     role: MISTRAL_ROLE.User,
                 };
-            case 2:
+            case 2:  // Assistant
                 return {
                     content: content,
                     role: MISTRAL_ROLE.Assistant,
                 };
-            case 3:
+            case 3:  // System
                 return {
                     content: content,
                     role: MISTRAL_ROLE.System,
                 };
+            // case 4:  // Tool
             default:
                 throw new Error(`Unknown message role: ${message.role}`);
         }
@@ -169,6 +170,11 @@ export class MistralChatProvider implements LanguageModelChatProvider<MistralMod
             throw new Error("No messages provided");
         }
 
+        if ((options.tools && options.tools.length > 0) && !model.capabilities?.toolCalling) {
+            this.logger.error("Model does not support tool calling");
+            throw new Error("Model does not support tool calling");
+        }
+
         if (options.toolMode !== 1
                 || options.tools && options.tools.length > 0
                 || options.modelOptions && Object.keys(options.modelOptions).length > 0
@@ -187,6 +193,7 @@ export class MistralChatProvider implements LanguageModelChatProvider<MistralMod
                     {
                         model: model.id,
                         messages: transformed,
+                        // TODO: Add tool support
                     }
             );
 
@@ -219,6 +226,9 @@ export class MistralChatProvider implements LanguageModelChatProvider<MistralMod
 
                     roleUnusedForNow = delta.role;
                 }
+
+                // Handle tool calls in the response
+                // if (delta.toolCalls) ...
 
                 const content = delta.content;
                 if (content === undefined || content === null)
