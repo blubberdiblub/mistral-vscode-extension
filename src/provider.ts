@@ -167,7 +167,8 @@ export class MistralChatProvider implements LanguageModelChatProvider<MistralMod
             throw new Error("No messages provided");
         }
 
-        if ((options.tools && options.tools.length > 0) && !model.capabilities?.toolCalling) {
+        if ((options.tools && options.tools.length > 0) && !model.capabilities?.toolCalling)
+        {
             this.logger.error("Model does not support tool calling");
             throw new Error("Model does not support tool calling");
         }
