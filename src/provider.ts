@@ -107,22 +107,11 @@ export class MistralChatProvider implements LanguageModelChatProvider<MistralMod
             );
         }
 
-        let content: string;
-
-        if (typeof message.content === 'string')
-        {
-            content = message.content;
-        }
-        else
-        {
-            content = message.content.map((part) =>
-            {
-                if (part instanceof LanguageModelTextPart)
-                    return part.value;
-
-                return String(part);
-            }).join('');
-        }
+        const content = typeof message.content === 'string'
+                ? message.content
+                : message.content.map(
+                        (part) => part instanceof LanguageModelTextPart ? part.value : String(part)
+                ).join('');
 
         switch (message.role)
         {
