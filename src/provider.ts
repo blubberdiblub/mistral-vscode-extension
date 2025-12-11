@@ -85,8 +85,6 @@ export class MistralChatProvider implements LanguageModelChatProvider<MistralMod
             array: readonly any[],
     ): MistralMessage
     {
-        let content: string;
-
         // TODO: Remove development debug output.
         if (message.name ||
                 message.role < 1 || message.role > 3 ||
@@ -96,20 +94,21 @@ export class MistralChatProvider implements LanguageModelChatProvider<MistralMod
                 true
         )
         {
-            const content: unknown = message.content;
-            const copy: { content?: any; c?: any; } = { ...message };
+            const copy: { content?: unknown; c?: unknown; } = { ...message };
             delete copy.content; delete copy.c;
             this.logger.debug(
                     "Input Message:", JSON.stringify(copy),
-                    "\n" + (!Array.isArray(content)
-                            ? JSON.stringify(content)
-                            : content.map((part) => part instanceof LanguageModelTextPart
+                    "\n" + (!Array.isArray(message.content)
+                            ? JSON.stringify(message.content)
+                            : message.content.map((part) => part instanceof LanguageModelTextPart
                                           ? part.value
                                           : part instanceof LanguageModelDataPart
                                           ? `Content-Type: ${part.mimeType}\n\n${part.data}`
                                           : JSON.stringify(part)).join("\n---\n")) + "\n---\n"
             );
         }
+
+        let content: string;
 
         if (typeof message.content === 'string')
         {
