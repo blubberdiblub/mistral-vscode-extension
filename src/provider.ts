@@ -408,8 +408,10 @@ export class MistralChatProvider implements LanguageModelChatProvider<MistralMod
                     continue;
 
                 uniqueModels.delete(otherInfo);
-                newAliases = newAliases.union(otherInfo.aliases);
-                examineIds = examineIds.difference(otherInfo.aliases);
+                newAliases = new Set([...newAliases, ...otherInfo.aliases]);
+                for (const alias of otherInfo.aliases) {
+                    examineIds.delete(alias);
+                }
 
                 if (resultModelInfo.version.localeCompare(otherInfo.version, undefined, {
                     numeric: true,
