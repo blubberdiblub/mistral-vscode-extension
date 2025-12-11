@@ -396,7 +396,7 @@ export class MistralChatProvider implements LanguageModelChatProvider<MistralMod
     {
         let resultModelInfo = modelInfo;
         let newAliases = new Set(modelInfo.aliases);
-        let examineIds = new Set(modelInfo.aliases);
+        const examineIds = new Set(modelInfo.aliases);
         while (examineIds.size > 0)
         {
             for (const id of examineIds)
@@ -409,9 +409,8 @@ export class MistralChatProvider implements LanguageModelChatProvider<MistralMod
 
                 uniqueModels.delete(otherInfo);
                 newAliases = new Set([...newAliases, ...otherInfo.aliases]);
-                for (const alias of otherInfo.aliases) {
+                for (const alias of otherInfo.aliases)
                     examineIds.delete(alias);
-                }
 
                 if (resultModelInfo.version.localeCompare(otherInfo.version, undefined, {
                     numeric: true,
