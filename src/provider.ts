@@ -174,11 +174,9 @@ export class MistralChatProvider implements LanguageModelChatProvider<MistralMod
         if (options.toolMode !== 1
                 || options.tools && options.tools.length > 0
                 || options.modelOptions && Object.keys(options.modelOptions).length > 0
-                || true
         )
         {
             this.logger.debug("  model =", JSON.stringify(model));
-            //this.logger.debug("  messages =", JSON.stringify(messages));
             this.logger.debug("  options =", JSON.stringify(options));
         }
 
@@ -195,7 +193,7 @@ export class MistralChatProvider implements LanguageModelChatProvider<MistralMod
             );
 
             if (token.isCancellationRequested)
-                return Promise.reject(Error('Cancelled'));
+                return Promise.reject(new Error('Cancelled'));
 
             let role: string | null = null;
             let thereWasPrecedingContent = false;
@@ -204,7 +202,7 @@ export class MistralChatProvider implements LanguageModelChatProvider<MistralMod
             {
                 //this.logger.debug(`Event: ${JSON.stringify(event.data)}`);
                 if (token.isCancellationRequested)
-                    return Promise.reject(Error('Cancelled'));
+                    return Promise.reject(new Error('Cancelled'));
 
                 const delta = event.data.choices[0].delta;
                 if (delta.role)
