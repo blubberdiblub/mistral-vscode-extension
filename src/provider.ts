@@ -1,17 +1,17 @@
 import {
     LanguageModelDataPart,
     LanguageModelTextPart,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     LanguageModelToolCallPart,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     LanguageModelToolResultPart,
 } from 'vscode';
 import type {
     CancellationToken,
     ExtensionContext,
     LanguageModelChatInformation,
-    LanguageModelChatMessageRole,
     LanguageModelChatProvider,
     LanguageModelChatRequestMessage,
-    LanguageModelInputPart,
     LanguageModelResponsePart,
     PrepareLanguageModelChatModelOptions,
     Progress,
@@ -19,7 +19,7 @@ import type {
 } from 'vscode';
 
 import { Mistral } from '@mistralai/mistralai';
-import type { ChatCompletionStreamRequest } from '@mistralai/mistralai/models/components';
+// import type { ChatCompletionStreamRequest } from '@mistralai/mistralai/models/components';
 
 import {
     API_KEY_STORAGE_KEY,
@@ -29,7 +29,6 @@ import {
 } from './constants';
 import { askUserForAPIKey } from './ui';
 import type {
-    FixedLanguageModelChatMessageRole,
     FixedLanguageModelChatRequestMessage,
     Logger,
     MistralMessage,
@@ -82,7 +81,7 @@ export class MistralChatProvider implements LanguageModelChatProvider<MistralMod
     private _transformMessageVSCodeToMistral(
             message: FixedLanguageModelChatRequestMessage,
             index: number,
-            array: readonly any[],
+            array: readonly unknown[],
     ): MistralMessage
     {
         // TODO: Remove development debug output.
