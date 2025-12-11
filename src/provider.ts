@@ -292,6 +292,19 @@ export class MistralChatProvider implements LanguageModelChatProvider<MistralMod
     {
         this.logger.trace("provideTokenCount(", model, text, token, ")");
 
+        // Validate input parameters
+        if (!model || !model.id)
+        {
+            this.logger.error("Invalid model parameter in provideTokenCount");
+            throw new Error("Invalid model parameter");
+        }
+
+        if (!text)
+        {
+            this.logger.error("No text provided for token counting");
+            throw new Error("No text provided");
+        }
+
         try
         {
             // TODO: Implement token count for Mistral
