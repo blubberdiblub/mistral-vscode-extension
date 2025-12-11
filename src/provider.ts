@@ -204,7 +204,13 @@ export class MistralChatProvider implements LanguageModelChatProvider<MistralMod
                 if (token.isCancellationRequested)
                     return Promise.reject(new Error('Cancelled'));
 
-                const delta = event.data.choices[0].delta;
+                const delta = event?.data?.choices?.[0]?.delta;
+                if (!delta)
+                {
+                    this.logger.warn("Invalid event data structure");
+                    continue;
+                }
+
                 if (delta.role)
                 {
                     if (thereWasPrecedingContent || delta.role !== 'assistant')
