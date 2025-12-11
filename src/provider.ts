@@ -194,7 +194,7 @@ export class MistralChatProvider implements LanguageModelChatProvider<MistralMod
             if (token.isCancellationRequested)
                 return Promise.reject(new Error('Cancelled'));
 
-            let role: string | null = null;
+            let roleUnusedForNow: string | null = null;  // TODO: Use role variable
             let thereWasPrecedingContent = false;
 
             for await (const event of stream)
@@ -218,7 +218,7 @@ export class MistralChatProvider implements LanguageModelChatProvider<MistralMod
                         progress.report(new LanguageModelTextPart(`\n---\n\n<span style="font-size: xx-small">${delta.role}</span>\n\n`));
                     }
 
-                    role = delta.role;
+                    roleUnusedForNow = delta.role;
                 }
 
                 const content = delta.content;
