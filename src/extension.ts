@@ -29,7 +29,7 @@ export async function activate(context: ExtensionContext): Promise<void>
 }
 
 // This method is called when the extension is deactivated
-export function deactivate()
+export async function deactivate(): Promise<void>
 {
     const logger = new VSCodeLogger(OUTPUT_SEVERITY.notice, [LOG_CHANNEL_NAME, console]);
 
