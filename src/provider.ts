@@ -48,7 +48,6 @@ import { askUserForAPIKey } from './ui';
 
 export class MistralChatProvider implements LanguageModelChatProvider<MistralModelChatInformation>
 {
-    private _apiKey: string | null = null;
     private _mistralClient: Mistral | null = null;
 
     constructor(
@@ -57,6 +56,38 @@ export class MistralChatProvider implements LanguageModelChatProvider<MistralMod
     )
     {
         logger.trace("MistralChatProvider.constructor()");
+    }
+
+
+    async configure(vendor?: string): Promise<void>
+    {
+        if (vendor !== undefined && vendor !== VENDOR_IDENTIFIER)
+            return;
+
+        this.logger.trace("configure()");
+
+        let newAPIKey: string;
+        try
+        {
+            const oldAPIKey = await this.context.secrets.get(API_KEY_STORAGE_KEY);
+            newAPIKey = await askUserForAPIKey(oldAPIKey, true, this.logger);
+        }
+        catch (error)
+        {
+            this.logger.error("configure():", error);
+            return;
+        }
+
+        if (!newAPIKey)
+        {
+            this.logger.debug("configure(): deleting API key from secret storage");
+            await this.context.secrets.delete(API_KEY_STORAGE_KEY);
+
+            return;
+        }
+
+        this.logger.debug("configure(): saving API key in secret storage");
+        await this.context.secrets.store(API_KEY_STORAGE_KEY, newAPIKey);
     }
 
 
@@ -308,38 +339,6 @@ export class MistralChatProvider implements LanguageModelChatProvider<MistralMod
 
         for (const id of newAliases)
             mapIdToModel.set(id, resultModelInfo);
-    }
-
-
-    async configure(vendor?: string): Promise<void>
-    {
-        if (vendor !== undefined && vendor !== VENDOR_IDENTIFIER)
-            return;
-
-        this.logger.trace("configure()");
-
-        let newAPIKey: string;
-        try
-        {
-            const oldAPIKey = await this.context.secrets.get(API_KEY_STORAGE_KEY);
-            newAPIKey = await askUserForAPIKey(oldAPIKey, true, this.logger);
-        }
-        catch (error)
-        {
-            this.logger.error("configure():", error);
-            return;
-        }
-
-        if (!newAPIKey)
-        {
-            this.logger.debug("configure(): deleting API key from secret storage");
-            await this.context.secrets.delete(API_KEY_STORAGE_KEY);
-
-            return;
-        }
-
-        this.logger.debug("configure(): saving API key in secret storage");
-        await this.context.secrets.store(API_KEY_STORAGE_KEY, newAPIKey);
     }
 
 
