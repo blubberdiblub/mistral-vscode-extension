@@ -1,5 +1,6 @@
 import {
     LanguageModelChatMessageRole,
+    LanguageModelChatToolMode,
     LanguageModelDataPart,
     LanguageModelTextPart,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -20,6 +21,12 @@ import type {
 } from 'vscode';
 
 import { Mistral } from '@mistralai/mistralai';
+import type {
+    EventStream     as MistralEventStream,
+} from '@mistralai/mistralai/lib/event-streams';
+import type {
+    CompletionEvent as MistralCompletionEvent,
+} from '@mistralai/mistralai/models/components';
 // import type { ChatCompletionStreamRequest } from '@mistralai/mistralai/models/components';
 
 import {
@@ -80,70 +87,6 @@ export class MistralChatProvider implements LanguageModelChatProvider<MistralMod
         }
     }
 
-    private _transformMessageVSCodeToMistral(
-            message: FixedLanguageModelChatRequestMessage,
-            index: number,
-            array: readonly unknown[],
-    ): MistralMessage
-    {
-        const { role, content, name } = message;
-
-        // TODO: Remove development debug output.
-        if (name ||
-                role < 1 || role > 3 ||  // 4 = tool
-                role === 3 && (index !== 0 || array.length <= 2) ||
-                !Array.isArray(content) ||
-                content.some((part) => !(part instanceof LanguageModelTextPart)) ||
-                true
-        )
-        {
-            const copy: { content?: unknown; c?: unknown; } = { ...message };
-            delete copy.content; delete copy.c;
-            this.logger.debug(
-                    "Input Message:", JSON.stringify(copy),
-                    "\n" + (!Array.isArray(content)
-                            ? JSON.stringify(content)
-                            : content.map((part) => part instanceof LanguageModelTextPart
-                                          ? part.value
-                                          : part instanceof LanguageModelDataPart
-                                          ? `Content-Type: ${part.mimeType}\n\n${part.data}`
-                                          : JSON.stringify(part)).join("\n---\n")) + "\n---\n"
-            );
-        }
-
-        const text = typeof content === 'string'
-                ? content
-                : content.map(
-                        (part) => part instanceof LanguageModelTextPart ? part.value : String(part)
-                ).join('');
-
-        switch (role)
-        {
-            case LanguageModelChatMessageRole.User:
-                return {
-                    content: text,
-                    role: MISTRAL_ROLE.User,
-                };
-            case LanguageModelChatMessageRole.Assistant:
-                return {
-                    content: text,
-                    role: MISTRAL_ROLE.Assistant,
-                };
-            case AugmentedLanguageModelChatMessageRole.System:
-                return {
-                    content: text,
-                    role: MISTRAL_ROLE.System,
-                };
-            case AugmentedLanguageModelChatMessageRole.Tool:
-                return {
-                    content: text,
-                    role: MISTRAL_ROLE.Tool,
-                };
-            default:
-                throw new Error(`Unknown message role: ${role}`);
-        }
-    }
-
     async provideLanguageModelChatResponse(
             model: LanguageModelChatInformation,
             messages: readonly LanguageModelChatRequestMessage[],
@@ -155,135 +98,65 @@ export class MistralChatProvider implements LanguageModelChatProvider<MistralMod
         this.logger.trace("provideLanguageModelChatResponse()");
 
         // Validate input parameters
-        if (!model || !model.id)
+        if (!model.id)
         {
             this.logger.error("Invalid model parameter");
             throw new Error("Invalid model parameter");
         }
 
-        if (!messages || messages.length === 0)
+        if (messages.length === 0)
         {
             this.logger.error("No messages provided");
             throw new Error("No messages provided");
         }
 
-        if ((options.tools && options.tools.length > 0) && !model.capabilities?.toolCalling)
+        const capabilities = model.capabilities;
+        const modelOptions = options.modelOptions || {};
+        const tools = capabilities.toolCalling && options.tools?.length && options.tools || [];
+        const toolMode = options.toolMode;
+
+        if (toolMode === LanguageModelChatToolMode.Required)
         {
-            this.logger.error("Model does not support tool calling");
-            throw new Error("Model does not support tool calling");
+            if (!capabilities.toolCalling)
+            {
+                this.logger.error("Model does not support tool calling");
+                throw new Error("Model does not support tool calling");
+            }
+
+            if (!tools || tools.length === 0)
+            {
+                this.logger.error("No tools provided");
+                throw new Error("No tools provided");
+            }
         }
 
-        if (options.toolMode !== 1
-                || options.tools && options.tools.length > 0
-                || options.modelOptions && Object.keys(options.modelOptions).length > 0
+        // FIXME: this is ~~Sparta~~ debug output
+        if (toolMode !== LanguageModelChatToolMode.Auto
+                || tools && tools.length !== 0
+                || modelOptions && Object.keys(modelOptions).length !== 0
         )
         {
             this.logger.debug("  model =", JSON.stringify(model));
-            this.logger.debug("  options =", JSON.stringify(options));
+            this.logger.debug("  modelOptions =", JSON.stringify(modelOptions));
+            this.logger.debug("  tools =", JSON.stringify(tools));
+            this.logger.debug("  toolMode =", JSON.stringify(toolMode));
         }
 
         try
         {
-            const transformed = messages.map(this._transformMessageVSCodeToMistral.bind(this));
-
             const client = await this._ensureMistralClient();
-            const stream = await client.chat.stream(
-                    {
-                        model: model.id,
-                        messages: transformed,
-                        // TODO: Add tool support
-                    }
-            );
+            const mistralMessages = messages.map(this._transformMessageVSCodeToMistral.bind(this));
+            const stream = await this._promptMistralModel(client, model.id, mistralMessages, token);
 
             if (token.isCancellationRequested)
                 return Promise.reject(new Error('Cancelled'));
 
-            let roleUnusedForNow: string | null = null;  // TODO: Use role variable
-            let thereWasPrecedingContent = false;
-
-            for await (const event of stream)
-            {
-                //this.logger.debug(`Event: ${JSON.stringify(event.data)}`);
-                if (token.isCancellationRequested)
-                    return Promise.reject(new Error('Cancelled'));
-
-                const delta = event?.data?.choices?.[0]?.delta;
-                if (!delta)
-                {
-                    this.logger.warn("Invalid event data structure");
-                    continue;
-                }
-
-                if (delta.role)
-                {
-                    if (thereWasPrecedingContent || delta.role !== 'assistant')
-                    {
-                        this.logger.debug("Switching to role", delta.role);
-                        progress.report(new LanguageModelTextPart(`\n---\n\n<span style="font-size: xx-small">${delta.role}</span>\n\n`));
-                    }
-
-                    roleUnusedForNow = delta.role;
-                }
-
-                // Handle tool calls in the response
-                // if (delta.toolCalls) ...
-
-                const content = delta.content;
-                if (content === undefined || content === null)
-                    continue;
-
-                if (content)
-                    thereWasPrecedingContent = true;
-
-                if (typeof content === 'string')
-                {
-                    progress.report(new LanguageModelTextPart(content));
-                    continue;
-                }
-
-                for (const chunk of content)
-                {
-                    this.logger.debug("Output Chunk:", JSON.stringify(chunk));
-
-                    switch (chunk.type)
-                    {
-                        case 'image_url':
-                            const imageUrl = typeof chunk.imageUrl === 'string' ? chunk.imageUrl : chunk.imageUrl.url;
-                            progress.report(LanguageModelDataPart.text(imageUrl, 'text/x-url'));
-                            break;
-
-                        case 'document_url':
-                            progress.report(LanguageModelDataPart.text(chunk.documentUrl, 'text/x-url'));
-                            break;
-
-                        case 'text':
-                            progress.report(LanguageModelDataPart.text(chunk.text, 'text/markdown'));
-                            break;
-
-                        case 'reference':
-                            for (const id of chunk.referenceIds)
-                                progress.report(LanguageModelDataPart.text(`\\[${id}\\]`, 'text/markdown'));
-                            break;
-
-                        case 'file':
-                            progress.report(LanguageModelDataPart.text(`\\[${chunk.fileId}\\]`, 'text/markdown'));
-                            break;
-
-                        case 'thinking':
-                            progress.report(LanguageModelDataPart.text("………thinking………", 'text/markdown'));
-                            break;
-
-                        case 'input_audio':
-                            progress.report(LanguageModelDataPart.text(`\\(\\( ${chunk.inputAudio} \\)\\)`, 'text/markdown'));
-                            break;
-                    }
-                }
-            }
+            await this._receiveMistralReply(stream, progress, token);
         }
         catch (error)
         {
             this.logger.error("provideLanguageModelChatResponse():", error);
-            return Promise.reject(error);
+            return Promise.reject(error);  // TODO: find out whether ignoring the error is better
         }
 
         return Promise.resolve();
@@ -470,7 +343,7 @@ export class MistralChatProvider implements LanguageModelChatProvider<MistralMod
     }
 
 
-    async _ensureAPIKey(options?: {silent?: boolean}): Promise<string>
+    private async _ensureAPIKey(options?: {silent?: boolean}): Promise<string>
     {
         this.logger.trace("_ensureAPIKey()");
 
@@ -501,7 +374,7 @@ export class MistralChatProvider implements LanguageModelChatProvider<MistralMod
     }
 
 
-    async _ensureMistralClient(): Promise<Mistral>
+    private async _ensureMistralClient(): Promise<Mistral>
     {
         if (this._mistralClient)
         {
@@ -536,5 +409,188 @@ export class MistralChatProvider implements LanguageModelChatProvider<MistralMod
         }
 
         return this._mistralClient;
+    }
+
+
+    private async _promptMistralModel(
+            client: Mistral,
+            modelId: string,
+            messages: MistralMessage[],
+            token: CancellationToken,
+    ): Promise<MistralEventStream<MistralCompletionEvent>>
+    {
+        // TODO: Add cancellation support
+        return await client.chat.stream(
+                {
+                    model: modelId,
+                    messages: messages,
+                    // TODO: Add tool support
+                }
+        );
+    }
+
+
+    private async _receiveMistralReply(
+            stream: MistralEventStream<MistralCompletionEvent>,
+            progress: Progress<LanguageModelResponsePart>,  // TODO: transform reply external to this method
+            token: CancellationToken,
+    ): Promise<void>
+    {
+        let roleUnusedForNow: string | null = null;  // TODO: Use role variable
+        let thereWasPrecedingContent = false;
+
+        for await (const event of stream)
+        {
+            //this.logger.debug(`Event: ${JSON.stringify(event.data)}`);
+            if (token.isCancellationRequested)
+                return Promise.reject(new Error('Cancelled'));
+
+            const delta = event?.data?.choices?.[0]?.delta;
+            if (!delta)
+            {
+                this.logger.warn("Invalid event data structure");
+                continue;
+            }
+
+            if (delta.role)
+            {
+                if (thereWasPrecedingContent || delta.role !== 'assistant')
+                {
+                    this.logger.debug("Switching to role", delta.role);
+                    progress.report(new LanguageModelTextPart(`\n---\n\n<span style="font-size: xx-small">${delta.role}</span>\n\n`));
+                }
+
+                roleUnusedForNow = delta.role;
+            }
+
+            // Handle tool calls in the response
+            // if (delta.toolCalls) ...
+
+            const content = delta.content;
+            if (content === undefined || content === null)
+                continue;
+
+            if (content)
+                thereWasPrecedingContent = true;
+
+            if (typeof content === 'string')
+            {
+                progress.report(new LanguageModelTextPart(content));
+                continue;
+            }
+
+            for (const chunk of content)
+            {
+                this.logger.debug("Output Chunk:", JSON.stringify(chunk));
+
+                switch (chunk.type)
+                {
+                    case 'image_url':
+                        const imageUrl = typeof chunk.imageUrl === 'string' ? chunk.imageUrl : chunk.imageUrl.url;
+                        progress.report(LanguageModelDataPart.text(imageUrl, 'text/x-url'));
+                        break;
+
+                    case 'document_url':
+                        progress.report(LanguageModelDataPart.text(chunk.documentUrl, 'text/x-url'));
+                        break;
+
+                    case 'text':
+                        progress.report(LanguageModelDataPart.text(chunk.text, 'text/markdown'));
+                        break;
+
+                    case 'reference':
+                        for (const id of chunk.referenceIds)
+                            progress.report(LanguageModelDataPart.text(`\\[${id}\\]`, 'text/markdown'));
+                        break;
+
+                    case 'file':
+                        progress.report(LanguageModelDataPart.text(`\\[${chunk.fileId}\\]`, 'text/markdown'));
+                        break;
+
+                    case 'thinking':
+                        progress.report(LanguageModelDataPart.text("………thinking………", 'text/markdown'));
+                        break;
+
+                    case 'input_audio':
+                        progress.report(LanguageModelDataPart.text(`\\(\\( ${chunk.inputAudio} \\)\\)`, 'text/markdown'));
+                        break;
+                }
+            }
+        }
+
+        return Promise.resolve();
+    }
+
+
+    /**
+    * Transforms a message from VS Code format to Mistral format.
+    *
+    * @param message The message to transform.
+    * @param index The index of the message in the array.
+    * @param array The array of messages.
+    * @returns The transformed message.
+    */
+    private _transformMessageVSCodeToMistral(
+            message: FixedLanguageModelChatRequestMessage,
+            index: number,
+            array: readonly unknown[],
+    ): MistralMessage
+    {
+        const { role, content, name } = message;
+
+        // TODO: Remove development debug output.
+        if (name ||
+                role < 1 || role > 3 ||  // 4 = tool
+                role === 3 && (index !== 0 || array.length <= 2) ||
+                !Array.isArray(content) ||
+                content.some((part) => !(part instanceof LanguageModelTextPart)) ||
+                true
+        )
+        {
+            const copy: { content?: unknown; c?: unknown; } = { ...message };
+            delete copy.content; delete copy.c;
+            this.logger.debug(
+                    "Input Message:", JSON.stringify(copy),
+                    "\n" + (!Array.isArray(content)
+                            ? JSON.stringify(content)
+                            : content.map((part) => part instanceof LanguageModelTextPart
+                                          ? part.value
+                                          : part instanceof LanguageModelDataPart
+                                          ? `Content-Type: ${part.mimeType}\n\n${part.data}`
+                                          : JSON.stringify(part)).join("\n---\n")) + "\n---\n"
+            );
+        }
+
+        const text = typeof content === 'string'
+                ? content
+                : content.map(
+                        (part) => part instanceof LanguageModelTextPart ? part.value : String(part)
+                ).join('');
+
+        switch (role)
+        {
+            case LanguageModelChatMessageRole.User:
+                return {
+                    content: text,
+                    role: MISTRAL_ROLE.User,
+                };
+            case LanguageModelChatMessageRole.Assistant:
+                return {
+                    content: text,
+                    role: MISTRAL_ROLE.Assistant,
+                };
+            case AugmentedLanguageModelChatMessageRole.System:
+                return {
+                    content: text,
+                    role: MISTRAL_ROLE.System,
+                };
+            case AugmentedLanguageModelChatMessageRole.Tool:
+                return {
+                    content: text,
+                    role: MISTRAL_ROLE.Tool,
+                };
+            default:
+                throw new Error(`Unknown message role: ${role}`);
+        }
     }
 }
