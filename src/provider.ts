@@ -22,18 +22,23 @@ import type {
 } from 'vscode';
 
 import { Mistral } from '@mistralai/mistralai';
-import type {
-    EventStream     as MistralEventStream,
-} from '@mistralai/mistralai/lib/event-streams';
+import type { EventStream as MistralEventStream } from '@mistralai/mistralai/lib/event-streams';
 import {
-    ToolChoiceEnum  as MistralToolChoiceEnum,
-    ToolTypes       as MistralToolTypes,
+    AudioChunkType        as MistralAudioChunkType,
+    DocumentURLChunkType  as MistralDocumentURLChunkType,
+    ImageURLChunkType     as MistralImageURLChunkType,
+    ReferenceChunkType    as MistralReferenceChunkType,
+    TextChunkType         as MistralTextChunkType,
+    ThinkChunkType        as MistralThinkChunkType,
+    ToolChoiceEnum        as MistralToolChoiceEnum,
+    ToolTypes             as MistralToolTypes,
 } from '@mistralai/mistralai/models/components';
 import type {
-    CompletionEvent as MistralCompletionEvent,
-    Tool            as MistralTool,
+    CompletionChunk       as MistralCompletionChunk,
+    CompletionEvent       as MistralCompletionEvent,
+    ContentChunk          as MistralContentChunk,
+    Tool                  as MistralTool,
 } from '@mistralai/mistralai/models/components';
-// import type { ChatCompletionStreamRequest } from '@mistralai/mistralai/models/components';
 
 import {
     API_KEY_STORAGE_KEY,
@@ -149,7 +154,7 @@ export class MistralChatProvider implements LanguageModelChatProvider<MistralMod
 
         const capabilities = model.capabilities;
         const modelOptions = options.modelOptions || {};
-        const tools = capabilities.toolCalling && options.tools?.length && options.tools || [];
+        const tools = capabilities.toolCalling && options.tools?.length ? options.tools : undefined;
         const toolMode = options.toolMode;
 
         if (toolMode === LanguageModelChatToolMode.Required)
@@ -183,7 +188,7 @@ export class MistralChatProvider implements LanguageModelChatProvider<MistralMod
         {
             const client = await this._ensureMistralClient();
             const mistralMessages = messages.map(this._transformVSCodeMessageToMistral.bind(this));
-            const mistralTools = tools.map(this._transformVSCodeToolToMistral.bind(this));
+            const mistralTools = tools?.map(this._transformVSCodeToolToMistral.bind(this));
             const stream = await this._promptMistralModel(
                     client,
                     model.id,
@@ -198,7 +203,7 @@ export class MistralChatProvider implements LanguageModelChatProvider<MistralMod
             if (token.isCancellationRequested)
                 return Promise.reject(new Error('Cancelled'));
 
-            await this._receiveMistralReply(stream, progress, token);
+            await this._receiveMistralEventStream(stream, progress, token);
         }
         catch (error)
         {
@@ -431,31 +436,160 @@ export class MistralChatProvider implements LanguageModelChatProvider<MistralMod
             client: Mistral,
             modelId: string,
             messages: MistralMessage[],
-            tools: MistralTool[],
+            tools: MistralTool[] | undefined,
             toolChoice: MistralToolChoiceEnum,
             token: CancellationToken,
     ): Promise<MistralEventStream<MistralCompletionEvent>>
     {
-        // TODO: Add cancellation support
-        return await client.chat.stream(
+        if (token.isCancellationRequested)
+            return Promise.reject(new Error("Cancelled"));
+
+        const abortController = new AbortController();
+        token.onCancellationRequested(() => abortController.abort());
+
+        return client.chat.stream(
                 {
                     model: modelId,
                     messages: messages,
                     tools: tools,
                     toolChoice: toolChoice,
-                }
+                },
+                {
+                    signal: abortController.signal,
+                },
         );
     }
 
 
-    private async _receiveMistralReply(
+    private async _receiveMistralContentChunk(
+            chunk: MistralContentChunk,
+            progress: Progress<LanguageModelResponsePart>,
+            token: CancellationToken,
+    ): Promise<void>
+    {
+        let responsePart: LanguageModelResponsePart;
+
+        switch (chunk.type)
+        {
+            case MistralImageURLChunkType.ImageUrl:
+                const imageUrl = typeof chunk.imageUrl === 'string' ? chunk.imageUrl : chunk.imageUrl.url;
+                responsePart = LanguageModelDataPart.text(imageUrl, 'text/x-url');
+                break;
+
+            case MistralDocumentURLChunkType.DocumentUrl:
+                responsePart = LanguageModelDataPart.text(chunk.documentUrl, 'text/x-url');
+                break;
+
+            case MistralTextChunkType.Text:
+                responsePart = LanguageModelDataPart.text(chunk.text, 'text/markdown');
+                break;
+
+            case MistralReferenceChunkType.Reference:
+                responsePart = LanguageModelDataPart.text(
+                        chunk.referenceIds
+                                .map(id => `\\[${id}\\]`)
+                                .join(","),
+                        'text/markdown',
+                );
+                break;
+
+            case 'file':
+                responsePart = LanguageModelDataPart.text(`\\[${chunk.fileId}\\]`, 'text/markdown');
+                break;
+
+            case MistralThinkChunkType.Thinking:
+                responsePart = LanguageModelDataPart.text("………thinking………", 'text/markdown');
+                break;
+
+            case MistralAudioChunkType.InputAudio:
+                responsePart = LanguageModelDataPart.text(`\\(\\( ${chunk.inputAudio} \\)\\)`, 'text/markdown');
+                break;
+
+            default:
+                this.logger.error("Unsupported content chunk:", chunk);
+                throw new Error(`Unsupported content chunk: ${JSON.stringify(chunk)}`);
+        }
+
+        if (token.isCancellationRequested)
+            return Promise.reject(new Error("Cancelled"));
+
+        progress.report(responsePart);
+        return Promise.resolve();
+    }
+
+
+    private async _receiveMistralEventData(
+            data: MistralCompletionChunk,
+            state: { role: string | null, thereWasPrecedingContent: boolean },
+            progress: Progress<LanguageModelResponsePart>,  // TODO: transform reply external to this method
+            token: CancellationToken,
+    ): Promise<void>
+    {
+        const choice = data.choices[0];
+        if (!choice)
+        {
+            this.logger.error("Missing choice #0 in chunk");
+            throw new Error("Missing choice #0 in chunk");
+        }
+
+        if (choice.finishReason)
+            this.logger.debug("Finish reason:", choice.finishReason);
+
+        const delta = choice.delta;
+        if (!delta)
+        {
+            this.logger.error("Missing delta in choice #0");
+            throw new Error("Missing delta in choice #0");
+        }
+
+        if (delta.role)
+        {
+            if (state.thereWasPrecedingContent || delta.role !== 'assistant')
+            {
+                this.logger.debug("Switching to role", delta.role);
+                progress.report(new LanguageModelTextPart(`\n---\n\n<span style="font-size: xx-small">${delta.role}</span>\n\n`));
+            }
+
+            state.role = delta.role;
+        }
+
+        // Handle tool calls in the response
+        // if (delta.toolCalls) ...
+
+        const content = delta.content;
+        if (content === undefined || content === null)
+        {
+            this.logger.error("Missing content in delta");
+            throw new Error("Missing content in delta");
+        }
+
+        if (content)
+            state.thereWasPrecedingContent = true;
+
+        if (typeof content === 'string')
+        {
+            progress.report(new LanguageModelTextPart(content));
+            return;
+        }
+
+        for (const chunk of content)
+        {
+            this.logger.debug("Output Chunk:", JSON.stringify(chunk));
+            await this._receiveMistralContentChunk(chunk, progress, token);
+        }
+    }
+
+
+    private async _receiveMistralEventStream(
             stream: MistralEventStream<MistralCompletionEvent>,
             progress: Progress<LanguageModelResponsePart>,  // TODO: transform reply external to this method
             token: CancellationToken,
     ): Promise<void>
     {
-        let roleUnusedForNow: string | null = null;  // TODO: Use role variable
-        let thereWasPrecedingContent = false;
+        const state = {
+            role: null,
+            thereWasPrecedingContent: false,
+        };
 
         for await (const event of stream)
         {
@@ -463,77 +597,7 @@ export class MistralChatProvider implements LanguageModelChatProvider<MistralMod
             if (token.isCancellationRequested)
                 return Promise.reject(new Error('Cancelled'));
 
-            const delta = event?.data?.choices?.[0]?.delta;
-            if (!delta)
-            {
-                this.logger.warn("Invalid event data structure");
-                continue;
-            }
-
-            if (delta.role)
-            {
-                if (thereWasPrecedingContent || delta.role !== 'assistant')
-                {
-                    this.logger.debug("Switching to role", delta.role);
-                    progress.report(new LanguageModelTextPart(`\n---\n\n<span style="font-size: xx-small">${delta.role}</span>\n\n`));
-                }
-
-                roleUnusedForNow = delta.role;
-            }
-
-            // Handle tool calls in the response
-            // if (delta.toolCalls) ...
-
-            const content = delta.content;
-            if (content === undefined || content === null)
-                continue;
-
-            if (content)
-                thereWasPrecedingContent = true;
-
-            if (typeof content === 'string')
-            {
-                progress.report(new LanguageModelTextPart(content));
-                continue;
-            }
-
-            for (const chunk of content)
-            {
-                this.logger.debug("Output Chunk:", JSON.stringify(chunk));
-
-                switch (chunk.type)
-                {
-                    case 'image_url':
-                        const imageUrl = typeof chunk.imageUrl === 'string' ? chunk.imageUrl : chunk.imageUrl.url;
-                        progress.report(LanguageModelDataPart.text(imageUrl, 'text/x-url'));
-                        break;
-
-                    case 'document_url':
-                        progress.report(LanguageModelDataPart.text(chunk.documentUrl, 'text/x-url'));
-                        break;
-
-                    case 'text':
-                        progress.report(LanguageModelDataPart.text(chunk.text, 'text/markdown'));
-                        break;
-
-                    case 'reference':
-                        for (const id of chunk.referenceIds)
-                            progress.report(LanguageModelDataPart.text(`\\[${id}\\]`, 'text/markdown'));
-                        break;
-
-                    case 'file':
-                        progress.report(LanguageModelDataPart.text(`\\[${chunk.fileId}\\]`, 'text/markdown'));
-                        break;
-
-                    case 'thinking':
-                        progress.report(LanguageModelDataPart.text("………thinking………", 'text/markdown'));
-                        break;
-
-                    case 'input_audio':
-                        progress.report(LanguageModelDataPart.text(`\\(\\( ${chunk.inputAudio} \\)\\)`, 'text/markdown'));
-                        break;
-                }
-            }
+            await this._receiveMistralEventData(event.data, state, progress, token);
         }
 
         return Promise.resolve();
