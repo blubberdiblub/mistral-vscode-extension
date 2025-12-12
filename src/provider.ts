@@ -14,6 +14,7 @@ import type {
     LanguageModelChatInformation,
     LanguageModelChatProvider,
     LanguageModelChatRequestMessage,
+    LanguageModelChatTool,
     LanguageModelResponsePart,
     PrepareLanguageModelChatModelOptions,
     Progress,
@@ -24,8 +25,13 @@ import { Mistral } from '@mistralai/mistralai';
 import type {
     EventStream     as MistralEventStream,
 } from '@mistralai/mistralai/lib/event-streams';
+import {
+    ToolChoiceEnum  as MistralToolChoiceEnum,
+    ToolTypes       as MistralToolTypes,
+} from '@mistralai/mistralai/models/components';
 import type {
     CompletionEvent as MistralCompletionEvent,
+    Tool            as MistralTool,
 } from '@mistralai/mistralai/models/components';
 // import type { ChatCompletionStreamRequest } from '@mistralai/mistralai/models/components';
 
@@ -176,8 +182,18 @@ export class MistralChatProvider implements LanguageModelChatProvider<MistralMod
         try
         {
             const client = await this._ensureMistralClient();
-            const mistralMessages = messages.map(this._transformMessageVSCodeToMistral.bind(this));
-            const stream = await this._promptMistralModel(client, model.id, mistralMessages, token);
+            const mistralMessages = messages.map(this._transformVSCodeMessageToMistral.bind(this));
+            const mistralTools = tools.map(this._transformVSCodeToolToMistral.bind(this));
+            const stream = await this._promptMistralModel(
+                    client,
+                    model.id,
+                    mistralMessages,
+                    mistralTools,
+                    toolMode === LanguageModelChatToolMode.Required
+                            ? MistralToolChoiceEnum.Required
+                            : MistralToolChoiceEnum.Auto,
+                    token,
+            );
 
             if (token.isCancellationRequested)
                 return Promise.reject(new Error('Cancelled'));
@@ -415,6 +431,8 @@ export class MistralChatProvider implements LanguageModelChatProvider<MistralMod
             client: Mistral,
             modelId: string,
             messages: MistralMessage[],
+            tools: MistralTool[],
+            toolChoice: MistralToolChoiceEnum,
             token: CancellationToken,
     ): Promise<MistralEventStream<MistralCompletionEvent>>
     {
@@ -423,7 +441,8 @@ export class MistralChatProvider implements LanguageModelChatProvider<MistralMod
                 {
                     model: modelId,
                     messages: messages,
-                    // TODO: Add tool support
+                    tools: tools,
+                    toolChoice: toolChoice,
                 }
         );
     }
@@ -529,7 +548,7 @@ export class MistralChatProvider implements LanguageModelChatProvider<MistralMod
     * @param array The array of messages.
     * @returns The transformed message.
     */
-    private _transformMessageVSCodeToMistral(
+    private _transformVSCodeMessageToMistral(
             message: FixedLanguageModelChatRequestMessage,
             index: number,
             array: readonly unknown[],
@@ -591,5 +610,17 @@ export class MistralChatProvider implements LanguageModelChatProvider<MistralMod
             default:
                 throw new Error(`Unknown message role: ${role}`);
         }
+    }
+
+    private _transformVSCodeToolToMistral(tool: LanguageModelChatTool): MistralTool
+    {
+        return {
+            type: MistralToolTypes.Function,
+            function: {
+                name: tool.name,
+                description: tool.description,
+                parameters: tool.inputSchema || {},
+            }
+        };
     }
 }
